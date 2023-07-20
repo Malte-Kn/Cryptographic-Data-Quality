@@ -1,0 +1,28 @@
+Trainingset              Testset                         Result
+Normalset(60k)          Normaltestset(10k)              (98% 0.0453, 99%0.0375)
+
+AllBlured(60k, 1-30)    AllBlured(10k,7,13 1-30)         (94% 0.1950,96% 0.1209)
+AllBlured(60k,1-30)     NoneBlured(10k)                 (79% 1.3652, 85% 0.9329)
+
+AllBlured(60k, 3.5)    AllBlured(10k, 21,21 3.5-3.5)       ()
+AllBlured(60k,3.5)     NoneBlured(10k)                     (69% 4.3612,61% 9.6235)
+
+AllNoise(60k,0-1.2)       AllNoise(10k,0-1.2)             (96% 0.1063, 97% 0.0814)
+AllNoise(60k,0-1.2)       NoneNoise(10k)                  (98% 0.0788,98% 0.0535)
+
+AllNoise(60k,0-1.7)       AllNoise(10k,0-1.7)             (95% 0.1642, 95% 0.1447)
+AllNoise(60k,0-1.7)       NoneNoise(10k)                  (97% 0.0981,98% 0.0691)
+
+AllNoise(60k,1-1.2)       AllNoise(10k,1-1.2)             (96% 0.1063, 97% 0.0814)
+AllNoise(60k,1-1.2)       NoneNoise(10k)                  (97% 0.0788,98% 0.1035)
+
+Bucket 
+Image Bucket : [585, 46, 27, 23, 103]
+
+BlurImage (3,7,30) Bucket: [424, 158, 114, 53, 35]
+
+BlurImage (21,21,3.5) Bucket: [440, 158, 135, 51, 0]
+
+NoiseImage (1.2) Bucket: [180, 72, 79, 54, 399]
+
+NoiseImage (1.7) Bucket: [158, 42, 48, 29, 507]

@@ -1,0 +1,25 @@
+import "utils/casts/field_to_u32.zok" as field_to_u32;
+
+
+/*
+Generating Proof for an Arry of Labels 0-9 that all labels are represented
+*/
+//Set size same as batchsize in Local_Trainers
+const u32 size = 1000;
+
+
+def main(private field[size] labels, public field heterogenIndex){
+    field[10] mut number_of_labels = [0,0,0,0,0,0,0,0,0,0];
+    u32 mut label = 0;
+    //count labels
+    for u32 i in 0..size {
+        label = field_to_u32(labels[i]);
+        number_of_labels[label] = number_of_labels[label] + 1;
+    }
+    //Check if every label is present
+    for u32 j in 0..10{
+        //Proof generating fails if one lable is represented only min or less times
+        assert(number_of_labels[j] > heterogenIndex);
+    }
+    return;
+}
