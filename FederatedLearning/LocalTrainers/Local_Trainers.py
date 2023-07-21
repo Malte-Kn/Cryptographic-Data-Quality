@@ -70,7 +70,45 @@ def imageQuality_check(trainerImgs):
         if gray > 500 or distribution[5] < 10:
             badImgs.append(x)
         distribution = [0,0,0,0,0,0]
-    return badImgs            
+    return badImgs  
+
+
+#Zokrates ZKP Creation
+def zok_compile(path:str, output:str, r1cs:str):
+    zokrates_compile = ["zokrates","compile","-i",path, "-o",output,"-r", r1cs]
+    print("Compiling root.zok\n")
+    t_start = time.time()
+    x = subprocess.run(zokrates_compile, capture_output= True)
+    t_end= time.time()
+    print(f"Compiling took {t_end-t_start} sec")
+
+    zokrates_setup = ["zokrates", "setup", "-i", output, "-p", output+"_proving.key","-v",output+"_verification.key"]
+    print("Setup \n")
+    t_start = time.time()
+    x = subprocess.run(zokrates_setup, capture_output= True)
+    t_end= time.time()
+    print(f"Setup took {t_end-t_start} sec")
+
+#Witness and Proof Generation
+def zok_prove(witness:str, output:str, trainer:str):
+    zokrates_witness = ["zokrates", "compute-witness", "-i", output, "-o", output+"_witness", "-a"]
+    zokrates_witness.extend(witness.split(" "))
+    print(f"Creating Witness for {batchsize} labels, Witness stored in {output}_witness\n")
+    t_start = time.time()
+    x = subprocess.run(zokrates_witness, capture_output= True)
+    t_end= time.time()
+    print(f"Witness creation took {t_end-t_start} sec")
+
+    zokrates_proof = ["zokrates", "generate-proof", "-i", output, "-j" , output+"trainer"+trainer+"_proof.json", "-p", output+"_proving.key", "-w", output+"_witness"]
+    print(f"Creating Proof for {batchsize} labels of Trainer {trainer}, Proof stored in {output}{trainer}_proof.json \n")
+    t_start = time.time()
+    x = subprocess.run(zokrates_proof, capture_output= True)
+    t_end= time.time()
+    print(f"Proof creation took {t_end-t_start} sec")
+
+
+
+
 #Init Dataset and variables
 file = '../../Data/MNIST/raw/train-images-idx3-ubyte'
 file2 =  '../../Data/MNIST/raw/train-labels-idx1-ubyte'
@@ -79,7 +117,7 @@ batchsize = 1000
 #Number of Trainers for our Federated Learning Simulation
 trainers_number = 10
 #heterogenity Index to FAIL Biggest amount vs smallest amount
-minimum = 0.045 * batchsize
+minimum = int(0.045 * batchsize)
 
 #Read MNIST Dataset as Array
 imgs = idx2numpy.convert_from_file(file)
@@ -90,9 +128,9 @@ labels = labels.copy()
 #Create Local Trainers 
 local_trainer_img = []
 local_trainer_label = []
-for i in range (trainers_number):
-    local_trainer_img.append(imgs[batchsize*i:batchsize*(i+1)])
-    local_trainer_label.append(labels[batchsize*i:batchsize*(i+1)])
+for i in range (0, trainers_number*batchsize,batchsize):
+    local_trainer_img.append(imgs[i:batchsize+i])
+    local_trainer_label.append(labels[i:batchsize+i])
 
 #Artifical hetrogen and label fliping for Trainer 3/7
 #print(f"{label_heterogenity(local_trainer_label[3])}")
@@ -110,7 +148,7 @@ local_trainer_img[5] = add_blur(local_trainer_img[5],1)
 local_trainer_img[6] = add_blur(local_trainer_img[6],10)
 #imgsset = imgs[:batchsize]
 #labelsset = labels[:batchsize]
-
+'''
 #Print DataQuality Stats
 for i in range(len(local_trainer_label)):
     classes = heterogenity_check(local_trainer_label[i])
@@ -122,6 +160,7 @@ for i in range(len(local_trainer_label)):
     elif badImgs != [] and len(badImgs) >= 15 :
         print(f"Trainer {i} has many bad Images: {len(badImgs)}\n")
     #To Show Bad Images
+'''
     #if badImgs != [] and i != 5:
      #   for x in badImgs:
       #      print(f"Trainer {i} has a bad Image: {x}")#local_trainer_img[i][x]
@@ -132,37 +171,11 @@ for i in range(len(local_trainer_label)):
 
 #ZERO KNOWLEGE PROOF GENERATION
 #Executing zokrates to r1cs etc.
-'''
-zok = "zokrates"
-zokrates_compile = [zok,"compile","-i","/home/malte/Desktop/bachelor/Thesis git/thesis/Implementation/Zokratestest/MNISTlabeltest/root.zok"]
-zokrates_setup = [zok, "setup"]
-witness = witness_input(labelsset) + str(min)
-zokrates_witness = [zok, "compute-witness","-a"]
-zokrates_proof = [zok, "generate-proof"]
-zokrates_witness.extend(witness.split(" "))
 
-print("Compiling root.zok\n")
-t_start = time.time()
-x = subprocess.run(zokrates_compile, capture_output= True)
-t_end= time.time()
-print(f"Compiling took {t_end-t_start} sec")
 
-print("Setup \n")
-t_start = time.time()
-x = subprocess.run(zokrates_setup, capture_output= True)
-t_end= time.time()
-print(f"Setup took {t_end-t_start} sec")
+path = "/home/malte/Desktop/bachelor/Thesisgit/thesis/Implementation/FederatedLearning/LocalTrainers/label_heterogenity.zok"
+zok_compile(path,"label_heterogenity", "label_heterogenity.r1cs")
+for i in range(len(local_trainer_label)):
+    witness = witness_input(local_trainer_label[i]) + str(minimum)
+    zok_prove(witness, "label_heterogenity",str(i))
 
-print(f"Creating Witness for {batchsize} labels, Witness stored in out.wtn\n")
-t_start = time.time()
-x = subprocess.run(zokrates_witness, capture_output= True)
-t_end= time.time()
-print(f"Witness creation took {t_end-t_start} sec")
-
-print(f"Creating Proof for {batchsize} labels, Proof stored in proof.json \n")
-t_start = time.time()
-x = subprocess.run(zokrates_proof, capture_output= True)
-t_end= time.time()
-print(f"Proof creation took {t_end-t_start} sec")
-
-'''
