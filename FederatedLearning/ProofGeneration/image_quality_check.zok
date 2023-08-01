@@ -1,14 +1,14 @@
 import "utils/casts/field_to_u32.zok" as field_to_u32;
 
-
+//export PATH=$PATH:/home/knuth/.zokrates/bin if zokrates not found
 /*
 Generating Proof of Quality for Size amount of Images
 */
 //Set size same as batchsize in Local_Trainers
 const u32 dim = 28;
-const u32 size = 1;
+const u32 size = 10;
 
-def main(private field[size][dim][dim] img){
+def main(private field[size][dim][dim] img) -> field{
     field[2] mut count = [0,0];
     field mut lowquali = 0;
     //count labels
@@ -19,8 +19,8 @@ def main(private field[size][dim][dim] img){
                 count[1] = if img[x][i][j] < 225 && img[x][i][j] > 29 {count[1] + 1} else {count[1]};
             }
         }
-        lowquali = if count[0] < 10 || count [1] > 500 {lowquali} else {lowquali + 1};
+        lowquali = if count[0] > 10 || count [1] < 500 {lowquali} else {lowquali + 1};
     }    
-    assert(lowquali< 2);
-    return;
+    
+    return lowquali;
 }

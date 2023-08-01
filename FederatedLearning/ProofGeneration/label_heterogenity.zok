@@ -8,18 +8,21 @@ Generating Proof for an Arry of Labels 0-9 that all labels are represented
 const u32 size = 1000;
 
 
-def main(private field[size] labels, field index){
+def main(private field[size] labels) -> field{
     field[10] mut number_of_labels = [0,0,0,0,0,0,0,0,0,0];
     u32 mut label = 0;
+    field mut max = 0;
+    field mut min = 0;
     //count labels
     for u32 i in 0..size {
         label = field_to_u32(labels[i]);
         number_of_labels[label] = number_of_labels[label] + 1;
     }
     //Check if every label is present
+    min = (number_of_labels[0]);
     for u32 j in 0..10{
-        //Proof generating fails if one lable is represented only min or less times
-        assert(number_of_labels[j] > index);
+        max = if number_of_labels[j] > max {number_of_labels[j]} else {max};
+        min = if number_of_labels[j] < min {number_of_labels[j]} else {min};
     }
-    return;
+    return max - min;
 }
