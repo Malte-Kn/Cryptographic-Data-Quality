@@ -1,0 +1,40 @@
+import "utils/casts/field_to_u32.zok" as field_to_u32;
+import "utils/casts/u32_to_field.zok" as u32_to_field;
+//export PATH=$PATH:/home/knuth/.zokrates/bin if zokrates not found
+/*
+Generating Proof of Quality for Size amount of Images
+*/
+//Set size same as batchsize in Local_Trainers
+const u32 dim = 28;
+const field[10] whiteavg = [98,48,78,77,61,53,73,66,72,63];
+const field[10] firstavg = [50,56,49,51,49,43,50,53,47,48];
+const field[10] lastavg =  [13,14,14,13,14,11,15,13,13,14];
+// imgvariance Whitecount,firstwhite,last white for all labels
+def main(public field [10][4] varinace, private (field[dim][dim],u32) imglabel)-> field[10][4]{
+    field mut whitecount = 0;
+    field mut first = 0;
+    field mut last = 0;
+    field mut a = 0;
+    field mut c = 0;
+    field mut b = 0;
+    field [dim][dim] img = imglabel.0;
+    u32 label = imglabel.1;
+    field[10][4] mut res = varinace;
+    for u32 i in 0..dim {
+        for u32 j in 0..dim{
+            whitecount = if img[i][j] >= 230 {whitecount + 1} else {whitecount};
+            first = if first == 0 && img[i][j] >= 230 {u32_to_field(i)} else {first};
+            last = if img[i][j] >= 230 {u32_to_field(j)} else {last};
+        }
+    }
+    res[label][3] =res[label][3] + 1;
+    a = (whitecount - whiteavg[label])*(whitecount - whiteavg[label]);
+    res[label][0] = res[label][0] + (a-res[label][0])/res[label][3];
+
+    b = (first - firstavg[label])*(first - firstavg[label]);
+    res[label][1] = res[label][1] + (b-res[label][1])/res[label][3];
+
+    c = (last - lastavg[label])*(last - lastavg[label]);
+    res[label][2] = res[label][2] + (c-res[label][2])/res[label][3]; 
+    return res;
+}

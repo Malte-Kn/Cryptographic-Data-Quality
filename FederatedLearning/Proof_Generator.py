@@ -1,6 +1,7 @@
 import os
 import time
 import subprocess
+import json
 
 #Forms data to Format for the witness generatin for ZKproof generation
 def witness_input_label(data):
@@ -29,7 +30,7 @@ def witness_input_img(data):
 def witness_input_img_nova(data):
     input="["
     for x in range(len(data)):
-        input += "[["
+        input += "["
         for i in range(28):
             input+= "["
             for j in range(28): 
@@ -42,12 +43,32 @@ def witness_input_img_nova(data):
             else: 
                 input += "]\n"
         if x < len(data)-1:        
-            input += "]],\n"
+            input += "],\n"
         else:
-            input += "]]\n"
+            input += "]\n"
     input += "]"
     return input
-
+def witness_input_img_label_nova(imgs,labels):
+    input="["
+    for x in range(len(imgs)):
+        input += "[["
+        for i in range(28):
+            input+= "["
+            for j in range(28): 
+                if j < 27: 
+                    input+= "\"" + str(imgs[x][i][j])+"\"" + ", "
+                else:
+                    input+= "\"" + str(imgs[x][i][j])+"\"" 
+            if i < 27:
+                input += "],\n"
+            else: 
+                input += "]\n"
+        if x < len(imgs)-1:        
+            input += f"],\"{labels[x]}\"],\n"
+        else:
+            input += f" ],\"{labels[x]}\"] \n" 
+    input += "]"
+    return input
 #Zokrates ZKP Creation
 def zok_compile(path:str, output:str, r1cs:str, curve: str):
     zokrates_compile = ["zokrates","compile","-i",path, "-o",output,"-r", r1cs, "-c", curve]
@@ -68,7 +89,8 @@ def zok_compile(path:str, output:str, r1cs:str, curve: str):
         zokrates_setup = ["zokrates","nova", "setup", "-i", output, "-o", output+".params"]
         print("Setup \n")
         t_start = time.time()
-        x = subprocess.run(zokrates_setup, capture_output= True)
+        #Setup onlyruns on certain Systems
+        #x = subprocess.run(zokrates_setup, capture_output= True)
         t_end= time.time()
         print(f"Setup took {t_end-t_start} sec")
 #Witness and Proof Generation
@@ -91,18 +113,34 @@ def zok_prove(input, isimg:bool, output:str, trainer:str, batchsize:int):
     print(f"Proof creation took {t_end-t_start} sec")
 
 
-def zok_prove_nova(input, isimg:bool, output:str, trainer: str, batchsize:int):
+def zok_prove_nova(input,input2, isimg:bool,islabel:bool, output:str, trainer: str, batchsize:int):
     print(f"Creating Witness for {batchsize} items, Witness stored in {output}steps.json\n")
-    if isimg:
+    if isimg and not islabel:
+        init = [0,0]
+        f = open (f"{output}init.json", "w")
+        f.write(witness_input_label_nova(init))
+        f.close()
         g = open (f"{output}steps.json", "w")
         g.write(witness_input_img_nova(input))
         g.close()
-    else:
+    elif not isimg and islabel:
+        init = [0]*10
+        f = open (f"{output}init.json", "w")
+        f.write(witness_input_label_nova(init))
+        f.close()
         g = open (f"{output}steps.json", "w")
         g.write(witness_input_label_nova(input))
         g.close()
+    else:
+        init = [["0","0","0","0"]]*10
+        f = open (f"{output}init.json", "w")
+        f.write(json.dumps(init))
+        f.close()
+        g = open (f"{output}steps.json", "w")
+        g.write(witness_input_img_label_nova(input,input2))
+        g.close()
     zokrates_proof = ["zokrates", "nova", "prove", "-i", output, "-j" , output+"trainer"+trainer+"_proof.json", "-p", output+".params", "--init", output+"init.json", "--steps", output+"steps.json"]
-    print(f"Creating Proof for {batchsize} items of Trainer {trainer}, Proof stored in {output}trainer{trainer}_proof.json \n{zokrates_proof}")
+    print(f"Creating Proof for {batchsize} items of Trainer {trainer}, Proof stored in {output}trainer{trainer}_proof.json \n")
     t_start = time.time()
     x = subprocess.run(zokrates_proof, capture_output= True)
     t_end= time.time()
