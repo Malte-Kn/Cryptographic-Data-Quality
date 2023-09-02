@@ -31,14 +31,14 @@ def witness_input_img_nova(data):
     input="["
     for x in range(len(data)):
         input += "["
-        for i in range(28):
+        for i in range(len(data[0])):
             input+= "["
-            for j in range(28): 
-                if j < 27: 
+            for j in range(len(data[0])): 
+                if j < len(data[0])-1: 
                     input+= "\"" + str(data[x][i][j])+"\"" + ", "
                 else:
                     input+= "\"" + str(data[x][i][j])+"\"" 
-            if i < 27:
+            if i < len(data[0])-1:
                 input += "],\n"
             else: 
                 input += "]\n"
@@ -52,14 +52,14 @@ def witness_input_img_label_nova(imgs,labels):
     input="["
     for x in range(len(imgs)):
         input += "[["
-        for i in range(28):
+        for i in range(len(imgs[0])):
             input+= "["
-            for j in range(28): 
-                if j < 27: 
+            for j in range(len(imgs[0])): 
+                if j < len(imgs[0])-1: 
                     input+= "\"" + str(imgs[x][i][j])+"\"" + ", "
                 else:
                     input+= "\"" + str(imgs[x][i][j])+"\"" 
-            if i < 27:
+            if i < len(imgs[0])-1:
                 input += "],\n"
             else: 
                 input += "]\n"
@@ -140,6 +140,41 @@ def zok_prove_nova(input,input2, isimg:bool,islabel:bool, output:str, trainer: s
         g.write(witness_input_img_label_nova(input,input2))
         g.close()
     zokrates_proof = ["zokrates", "nova", "prove", "-i", output, "-j" , output+"trainer"+trainer+"_proof.json", "-p", output+".params", "--init", output+"init.json", "--steps", output+"steps.json"]
+    #print(zokrates_proof)
+    print(f"Creating Proof for {batchsize} items of Trainer {trainer}, Proof stored in {output}trainer{trainer}_proof.json \n")
+    t_start = time.time()
+    x = subprocess.run(zokrates_proof, capture_output= True)
+    t_end= time.time()
+    print(f"Proof creation took {t_end-t_start} sec")
+
+
+def zok_continue_nova(input,input2, isimg:bool,islabel:bool, output:str, trainer: str, batchsize:int):
+    print(f"Creating Witness for {batchsize} items, Witness stored in {output}steps.json\n")
+    if isimg and not islabel:
+        init = [0,0]
+        f = open (f"{output}init.json", "w")
+        f.write(witness_input_label_nova(init))
+        f.close()
+        g = open (f"{output}steps.json", "w")
+        g.write(witness_input_img_nova(input))
+        g.close()
+    elif not isimg and islabel:
+        init = [0]*10
+        f = open (f"{output}init.json", "w")
+        f.write(witness_input_label_nova(init))
+        f.close()
+        g = open (f"{output}steps.json", "w")
+        g.write(witness_input_label_nova(input))
+        g.close()
+    else:
+        init = [["0","0","0","0"]]*10
+        f = open (f"{output}init.json", "w")
+        f.write(json.dumps(init))
+        f.close()
+        g = open (f"{output}steps.json", "w")
+        g.write(witness_input_img_label_nova(input,input2))
+        g.close()
+    zokrates_proof = ["zokrates", "nova", "prove", "-c", "-i", output, "-j" , output+"trainer"+trainer+"_proof.json", "-p", output+".params", "--init", output+"init.json", "--steps", output+"steps.json"]
     print(f"Creating Proof for {batchsize} items of Trainer {trainer}, Proof stored in {output}trainer{trainer}_proof.json \n")
     t_start = time.time()
     x = subprocess.run(zokrates_proof, capture_output= True)

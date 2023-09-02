@@ -7,6 +7,10 @@ from scipy.ndimage import gaussian_filter
 import os
 import Proof_Generator as proof
 import Data_Quality_Checks as DQ
+import torch
+import torchvision
+import torchvision.transforms as T
+from PIL import Image
 
 
 #Number of Trainers for our Federated Learning Simulation
@@ -41,7 +45,17 @@ def add_blur(imgs,frequency):
             #plt.show()
     return imgs
 
+def changeResolution(imgs, batch):
 
+    transform = T.Resize(size = (14,14))
+    res = []
+    for i in range(1000):
+        img = Image.fromarray(imgs[i])
+        img = transform(img)
+        x = np.asarray(img)
+        res.append(x)
+    return res
+    
 def init(batchsize:int):
     #Init Dataset and variables
     file = '../Data/MNIST/raw/train-images-idx3-ubyte'
@@ -57,7 +71,7 @@ def init(batchsize:int):
     imgs = imgs.copy()
     labels = idx2numpy.convert_from_file(file2)
     labels = labels.copy()
-
+    
     #Create Local Trainers 
     for i in range (0, trainers_number*batchsize,batchsize):
         local_trainer_img.append(imgs[i:batchsize+i])
@@ -80,7 +94,6 @@ def init(batchsize:int):
     local_trainer_img[6] = add_blur(local_trainer_img[6],10)
     #imgsset = imgs[:batchsize]
     #labelsset = labels[:batchsize]
-
 def qualityCheck():    
         #Print DataQuality Stats
     for i in range(len(local_trainer_label)):
@@ -117,19 +130,37 @@ def generateProof(proofname:str, batchsizes,params,imgs,labels):
         clean = ["sh","cleanup.sh"]
         subprocess.run(clean, capture_output= True)
     return times
-    
+
+def continueProof(proofname:str, batchsizes,params,imgs,labels):
+    global local_trainer_label,local_trainer_img
+    #proof.zok_compile(path,"image_quality_check_nova", "image_quality_check_nova.r1cs", "pallas")
+    times=[]
+    for x in batchsizes:
+        local_trainer_img[0]=(imgs[0:x])
+        local_trainer_label[0]= (labels[0:x])
+    #print(witness)
+        t1 = time.time()
+        proof.zok_continue_nova(local_trainer_img[0],local_trainer_label[0],params[0],params[1], proofname,"0",x)
+        t2 = time.time()
+        times.append((t2-t1)/60)
+        clean = ["sh","cleanup.sh"]
+        subprocess.run(clean, capture_output= True)
+    return times        
 #ZERO KNOWLEGE PROOF GENERATION
 #Executing zokrates to r1cs etc.
 #print(local_trainer_img[0])
-if __name__ == "__main__":
+def main():
     init(1000)
+    resizedimgs = changeResolution(imgs,1000)
+    
     batchsizes = [100,200,500,1000]
     batches = ["100","200","500","1000"]
-    proofname = "image_variance_nova"
+    proofname = "image_quality_check_nova"
     path = os.getcwd() + f"/ProofGeneration/{proofname}.zok"
-    #proof.zok_compile(path,proofname,proofname+".r1cs","pallas")
-    times = generateProof(proofname,batchsizes,[True,True],imgs,labels)
-
+    proof.zok_compile(path,proofname,proofname+".r1cs","pallas")
+    times = generateProof(proofname,batchsizes,[True,False],resizedimgs,labels)
+    #times = continueProof(proofname,batchsizes,[True,False],imgs,labels)
+    
     
     fig, ax = plt.subplots()
     ax.bar(batches,times)
@@ -138,4 +169,7 @@ if __name__ == "__main__":
     ax.set_title(proofname)
     plt.show()
     plt.savefig(f"{proofname}.png", dpi = fig.dpi)
-    
+
+
+if __name__ == "__main__":
+    main()

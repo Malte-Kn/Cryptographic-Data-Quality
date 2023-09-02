@@ -6,7 +6,7 @@ Generating Proof for an Arry of Labels 0-9 that all labels are represented
 */
 //Set size same as batchsize in MNIST_to_Zokrates
 const u32 dim = 28;
-const u32 size = 3;
+const u32 size = 1;
 
 def main(private field[size][dim][dim] img, field whitecount){
     field[size] mut count = [0;size];

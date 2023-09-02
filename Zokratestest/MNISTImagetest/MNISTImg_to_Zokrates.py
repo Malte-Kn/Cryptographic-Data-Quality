@@ -32,7 +32,7 @@ def countWhite(imgs):
 file = '../../Data/MNIST/raw/train-images-idx3-ubyte'
 file2 =  '../../Data/MNIST/raw/train-labels-idx1-ubyte'
 #Set batchsize same as size in root.zok
-batchsize = 3
+batchsize = 1
 #min of labels of a kind to fail
 min = 10
 imgs = idx2numpy.convert_from_file(file)
@@ -78,4 +78,3 @@ t_start = time.time()
 x = subprocess.run(zokrates_proof, capture_output= True)
 t_end= time.time()
 print(f"Proof creation took {t_end-t_start} sec")
-
