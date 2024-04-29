@@ -4,7 +4,7 @@
 Generating Proof of Quality for steps amount of Images
 */
 //Set steps same as batchsize in Local_Trainers
-const u32 dim = 28;
+const u32 dim = 14;
 // imgcheck [x,y] x bad images out of y
 def main(public u16 [2] imgcheck, private u8[dim][dim] img)-> u16[2]{
     u16[2] mut count = [0,0];

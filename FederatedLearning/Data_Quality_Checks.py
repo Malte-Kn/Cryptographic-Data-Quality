@@ -42,7 +42,7 @@ def imageVariance_check(trainerImgs,trainerLabel):
     pixels = len(trainerImgs[1][1])
     whiteCountavg = [98,48,78,77,61,53,73,66,72,63]
     currwhiteCount = 0
-    firstavg = [50,56,49,51,49,43,50,47,48]
+    firstavg = [50,56,49,51,49,43,50,47,48,50]
     lastavg = [13,14,14,13,14,11,15,13,13,14]
     currfirst = 0
     currlast = 0
@@ -89,4 +89,3 @@ def imagestats(imgs,labels):
     print(f"Whitecount: {whitecount}\n Firsts: {firstcount}\n Lasts: {lastcount}")
     
 
-#TODO WELL DEFINED

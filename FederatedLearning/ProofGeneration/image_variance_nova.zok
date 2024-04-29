@@ -4,20 +4,20 @@ import "utils/casts/u32_to_field.zok" as u32_to_field;
 /*
 Generating Proof of Quality for Size amount of Images
 */
-//Set size same as batchsize in Local_Trainers
+//Set steps same as batchsize in Local_Trainers
 const u32 dim = 28;
 const field[10] whiteavg = [98,48,78,77,61,53,73,66,72,63];
 const field[10] firstavg = [50,56,49,51,49,43,50,53,47,48];
 const field[10] lastavg =  [13,14,14,13,14,11,15,13,13,14];
 // imgvariance Whitecount,firstwhite,last white for all labels
-def main(public field [10][4] varinace, private (field[dim][dim],u32) imglabel)-> field[10][4]{
+def main(public field [10][4] varinace, private (u8[dim][dim],u32) imglabel)-> field[10][4]{
     field mut whitecount = 0;
     field mut first = 0;
     field mut last = 0;
     field mut a = 0;
     field mut c = 0;
     field mut b = 0;
-    field [dim][dim] img = imglabel.0;
+    u8 [dim][dim] img = imglabel.0;
     u32 label = imglabel.1;
     field[10][4] mut res = varinace;
     for u32 i in 0..dim {

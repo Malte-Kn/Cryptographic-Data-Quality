@@ -72,11 +72,15 @@ def witness_input_img_label_nova(imgs,labels):
 #Zokrates ZKP Creation
 def zok_compile(path:str, output:str, r1cs:str, curve: str):
     zokrates_compile = ["zokrates","compile","-i",path, "-o",output,"-r", r1cs, "-c", curve]
-    print(f"Compiling {output}.zok\n{zokrates_compile}")
+    times = []
+    stats = []
+    print(f"Compiling {output}.zok\n")
     t_start = time.time()
     x = subprocess.run(zokrates_compile, capture_output= True)
     t_end= time.time()
-    print(f"Compiling took {t_end-t_start} sec")
+    print(f"Compiling took {t_end-t_start} sec {x}")
+    stats.append(os.stat(output+".r1cs").st_size/(1024*1024))
+    times.append((t_end-t_start))
     #Only do normal setup if not Nova/Pallas-curve
     if curve != "pallas":
         zokrates_setup = ["zokrates", "setup", "-i", output, "-p", output+"_proving.key","-v",output+"_verification.key"]
@@ -90,9 +94,12 @@ def zok_compile(path:str, output:str, r1cs:str, curve: str):
         print("Setup \n")
         t_start = time.time()
         #Setup onlyruns on certain Systems
-        #x = subprocess.run(zokrates_setup, capture_output= True)
+        x = subprocess.run(zokrates_setup, capture_output= True)
         t_end= time.time()
         print(f"Setup took {t_end-t_start} sec")
+    stats.append(os.stat(output+".params").st_size/(1024*1024))
+    times.append((t_end-t_start))
+    return times,stats
 #Witness and Proof Generation
 def zok_prove(input, isimg:bool, output:str, trainer:str, batchsize:int):
     if isimg:
@@ -113,10 +120,10 @@ def zok_prove(input, isimg:bool, output:str, trainer:str, batchsize:int):
     print(f"Proof creation took {t_end-t_start} sec")
 
 
-def zok_prove_nova(input,input2, isimg:bool,islabel:bool, output:str, trainer: str, batchsize:int):
+def zok_prove_nova(input,input2, isimg:bool,islabel:bool, output:str, trainer: str, batchsize:int,init):
     print(f"Creating Witness for {batchsize} items, Witness stored in {output}steps.json\n")
     if isimg and not islabel:
-        init = [0,0]
+        #init = [0,0]
         f = open (f"{output}init.json", "w")
         f.write(witness_input_label_nova(init))
         f.close()
@@ -124,34 +131,35 @@ def zok_prove_nova(input,input2, isimg:bool,islabel:bool, output:str, trainer: s
         g.write(witness_input_img_nova(input))
         g.close()
     elif not isimg and islabel:
-        init = [0]*10
+        #init = [0]*10
         f = open (f"{output}init.json", "w")
         f.write(witness_input_label_nova(init))
         f.close()
         g = open (f"{output}steps.json", "w")
-        g.write(witness_input_label_nova(input))
+        g.write(witness_input_label_nova(input2))
         g.close()
     else:
-        init = [["0","0","0","0"]]*10
+        #init = [["0","0","0","0"]]*10
+        #init=[0,0,0]
         f = open (f"{output}init.json", "w")
         f.write(json.dumps(init))
         f.close()
         g = open (f"{output}steps.json", "w")
         g.write(witness_input_img_label_nova(input,input2))
         g.close()
-    zokrates_proof = ["zokrates", "nova", "prove", "-i", output, "-j" , output+"trainer"+trainer+"_proof.json", "-p", output+".params", "--init", output+"init.json", "--steps", output+"steps.json"]
+    zokrates_proof = ["zokrates", "nova", "prove", "-i", output, "-j" , "Proof"+output+"trainer"+trainer+"_proof.json", "-p", output+".params", "--init", output+"init.json", "--steps", output+"steps.json"]
     #print(zokrates_proof)
-    print(f"Creating Proof for {batchsize} items of Trainer {trainer}, Proof stored in {output}trainer{trainer}_proof.json \n")
+    print(f"Creating Proof for {batchsize} items of Trainer {trainer}, Proof stored in Proof{output}trainer{trainer}_proof.json \n")
     t_start = time.time()
     x = subprocess.run(zokrates_proof, capture_output= True)
     t_end= time.time()
     print(f"Proof creation took {t_end-t_start} sec")
+    return x
 
-
-def zok_continue_nova(input,input2, isimg:bool,islabel:bool, output:str, trainer: str, batchsize:int):
+def zok_continue_nova(input,input2, isimg:bool,islabel:bool, output:str, trainer: str, batchsize:int,init):
     print(f"Creating Witness for {batchsize} items, Witness stored in {output}steps.json\n")
     if isimg and not islabel:
-        init = [0,0]
+        #init = [0,0]
         f = open (f"{output}init.json", "w")
         f.write(witness_input_label_nova(init))
         f.close()
@@ -159,15 +167,15 @@ def zok_continue_nova(input,input2, isimg:bool,islabel:bool, output:str, trainer
         g.write(witness_input_img_nova(input))
         g.close()
     elif not isimg and islabel:
-        init = [0]*10
+        #init = [0]*10
         f = open (f"{output}init.json", "w")
         f.write(witness_input_label_nova(init))
         f.close()
         g = open (f"{output}steps.json", "w")
-        g.write(witness_input_label_nova(input))
+        g.write(witness_input_label_nova(input2))
         g.close()
     else:
-        init = [["0","0","0","0"]]*10
+        #init = [["0","0","0","0"]]*10
         f = open (f"{output}init.json", "w")
         f.write(json.dumps(init))
         f.close()
@@ -180,3 +188,39 @@ def zok_continue_nova(input,input2, isimg:bool,islabel:bool, output:str, trainer
     x = subprocess.run(zokrates_proof, capture_output= True)
     t_end= time.time()
     print(f"Proof creation took {t_end-t_start} sec")
+    return x
+
+def zok_compress_nova(proofname,input,isimg:bool,islabel:bool,batchsize,init):
+    if isimg and not islabel:
+        #init = [0,0]
+        f = open (f"{proofname}init.json", "w")
+        f.write(witness_input_label_nova(init))
+        f.close()
+        
+    elif not isimg and islabel:
+        #init = [0]*10
+        f = open (f"{proofname}init.json", "w")
+        f.write(witness_input_label_nova(init))
+        f.close()
+        
+    else:
+        #init = [["0","0","0","0"]]*10
+        #init=[0,0,0]
+        f = open (f"{proofname}init.json", "w")
+        f.write(json.dumps(init))
+        f.close()
+    zokrates_proof = ["zokrates", "nova", "compress", "--i", input, "-p", proofname+".params","-j" , str(batchsize)+proofname+"COMproof.json","-v", proofname+".key"]
+    print(zokrates_proof)
+    print(f"Crompress Proof for {batchsize} items of Trainer 0, Proof stored in {proofname}trainer0_proof.json \n")
+    t_start = time.time()
+    x = subprocess.run(zokrates_proof, capture_output= True)
+    t_end= time.time()
+    t1 =t_end-t_start
+    print(f"Comprssion took {t_end-t_start} sec")
+    zokrates_proof = ["zokrates", "nova", "verify", "-j", str(batchsize)+proofname, "--instance-path" , str(batchsize)+proofname+"trainer0_proof.json", "-v", proofname+".key", "--init", proofname+"init.json"]
+    print(f"Verify {batchsize} items of Trainer 0, Proof stored in {proofname}trainer0_proof.json \n")
+    t_start = time.time()
+    y = subprocess.run(zokrates_proof, capture_output= True)
+    t_end= time.time()
+    t2 =t_end-t_start
+    return t1,t2

@@ -1,0 +1,31 @@
+
+//export PATH=$PATH:/home/knuth/.zokrates/bin if zokrates not found
+/*
+Generating Proof of Quality for steps amount of Images
+*/
+//Set steps same as batchsize in Local_Trainers
+const u32 dim = 28;
+const u32 size = 1;
+// imgcheck [x,y] x bad images out of y
+def main(private u8[size][dim][dim] img)-> u16[2]{
+    u16[2] mut count = [0,0];
+    u16[2] mut res = [0,0];
+    u16 mut lowquali = 0;
+    //count labels
+    for u32 x in 0..size{
+        for u32 i in 0..dim {
+            for u32 j in 0..dim{
+                count[0] = if img[x][i][j] > 224 {count[0] + 1} else {count[0]};
+                count[1] = if img[x][i][j] < 225 && img[x][i][j] > 29 {count[1] + 1} else {count[1]};
+            }
+        }
+        lowquali = if count[0] > 10 || count [1] < 500 {lowquali} else {lowquali + 1};
+        count = [0,0];
+    }
+       
+    res[0] = lowquali;
+    res[1] = 20;
+    u16 y = res[0]*2;
+    assert(res[1] <200 || (res[1] >= 200 && y < res[1]));
+    return res;
+}
