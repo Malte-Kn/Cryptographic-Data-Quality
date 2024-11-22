@@ -26,5 +26,5 @@ The Main implementation of the verifiable data quality phase for federated learn
 ## MNISTeval
 The different evaluations for different data quality dimensions on a given convolutional neural network.
 
-##Zokratestest
+## Zokratestest
 Some simple Zokrates and MNIST functionality tests.
